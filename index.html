@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="CNC Copilot">
 <meta name="format-detection" content="telephone=no">
-<title>CNC Copilot FULL v1.0.0</title>
+<title>CNC Copilot FULL v1.0.1</title>
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="icon" href="./icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png">
@@ -25,7 +25,7 @@
 
 <div class="app-frame">
   <aside class="side-nav glass desktop-only">
-    <div class="side-brand"><div class="brand-cube">C</div><div><strong>CNC Copilot</strong><small>FULL v1.0.0</small></div></div>
+    <div class="side-brand"><div class="brand-cube">C</div><div><strong>CNC Copilot</strong><small>FULL v1.0.1</small></div></div>
     <nav>
       <button class="active" data-view="work"><span>⌁</span><b>Напарник</b><small>техпроцесс</small></button>
       <button data-view="tools"><span>◇</span><b>Инструмент</b><small>мой шкаф</small></button>
@@ -38,15 +38,29 @@
 
   <main class="main-shell">
     <header class="topbar glass">
-      <div class="mobile-brand mobile-only"><div class="brand-cube">C</div><div><strong>CNC Copilot</strong><small>FULL v1.0.0</small></div></div>
+      <div class="mobile-brand mobile-only"><div class="brand-cube">C</div><div><strong>CNC Copilot</strong><small>FULL v1.0.1</small></div></div>
       <div class="top-status"><span class="status-dot"></span><b id="offlineLabel">OFFLINE READY</b><small id="topMachine">CK52PT-Y · 828D</small></div>
       <button class="round-btn" id="resetDraft" title="Новый проект">↻</button>
     </header>
 
     <section id="view-work" class="view active">
       <div class="hero">
-        <div><p class="eyebrow">АВТОНОМНЫЙ CNC-НАПАРНИК</p><h1>От заготовки до проверенного режима.</h1><p>Собери технологический маршрут, получи режимы для каждой операции и подтверждай их реальным проходом — всё локально.</p></div>
-        <div class="hero-gauge glass"><div class="gauge-ring"><div><b id="heroRpm">0000</b><small>RPM</small></div></div><span>живой расчёт</span></div>
+        <div class="hero-copy"><p class="eyebrow">АВТОНОМНЫЙ CNC-НАПАРНИК</p><h1>От заготовки до проверенного режима.</h1><p>Собери технологический маршрут, получи режимы для каждой операции и подтверждай их реальным проходом — всё локально.</p></div>
+        <div class="hero-live">
+          <div class="hero-gauge glass" id="heroGauge">
+            <div class="gauge-ring" id="heroGaugeRing"><div><b id="heroRpm">0000</b><small>RPM</small></div></div>
+            <span id="heroGaugeCaption">0% · лимит 4000</span>
+          </div>
+          <div class="hero-sin glass" aria-label="Живые параметры SINUMERIK">
+            <div class="hero-sin-head"><span>SIEMENS · LIVE</span><b>828D</b></div>
+            <div class="hero-sin-grid">
+              <div><small>S / LIMS</small><b id="heroSinS">0000</b></div>
+              <div><small>F · G95</small><b id="heroSinF">0.000</b></div>
+              <div><small>Vc · G96</small><b id="heroSinVc">0.0</b></div>
+              <div><small>ap</small><b id="heroSinAp">0.000</b></div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div class="wizard-wrap glass">
@@ -196,12 +210,12 @@
         <article class="card glass">
           <div class="card-title"><div><small>ВАЖНО</small><h3>Граница ответственности</h3></div><span class="badge amber">operator check</span></div>
           <p>Расчёт — стартовая технологическая рекомендация. Перед запуском всегда проверяй зажим, траекторию, нули, коррекции, максимальные обороты патрона, направление шпинделя и документацию конкретного инструмента.</p>
-          <div class="version-block"><span>Версия</span><b>FULL 1.0.0</b><span>Режим</span><b>Offline PWA</b></div>
+          <div class="version-block"><span>Версия</span><b>FULL 1.0.1</b><span>Режим</span><b>Offline PWA</b></div>
         </article>
       </div>
     </section>
 
-    <footer class="app-footer"><span>CNC Copilot FULL v1.0.0</span><span>Ерошов Иван · Offline-first</span></footer>
+    <footer class="app-footer"><span>CNC Copilot FULL v1.0.1</span><span>Ерошов Иван · Offline-first</span></footer>
   </main>
 </div>
 

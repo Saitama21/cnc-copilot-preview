@@ -34,6 +34,20 @@ function material(){return D.materials.find(x=>x.id===state.materialId)||D.mater
 function operation(id){return D.operations.find(x=>x.id===id)}
 function stockMm(){const mul=state.stock.unit==='cm'?10:1;return{diameter:Math.max(.1,state.stock.diameter*mul),length:Math.max(.1,state.stock.length*mul)}}
 function effectiveMaxRpm(){const m=state.machine;return m.setupMaxRpm?Math.min(m.maxRpm,m.setupMaxRpm):m.maxRpm}
+function operationCount(opId){return state.route.reduce((n,r)=>n+(r.opId===opId?1:0),0)}
+function firstResultPass(){for(const g of state.results){if(g.passes?.length)return g.passes[0]}return null}
+function animateValue(el,to,dec=0,dur=720){
+  if(!el)return;const from=Number(String(el.textContent).replace(',', '.'))||0,start=performance.now();
+  function tick(ts){const p=clamp((ts-start)/dur,0,1),e=1-Math.pow(1-p,4),v=from+(to-from)*e;el.textContent=dec?v.toFixed(dec):String(Math.round(v)).padStart(el.id==='heroRpm'||el.id==='heroSinS'?4:1,'0');if(p<1)requestAnimationFrame(tick)}
+  requestAnimationFrame(tick);
+}
+function syncHeroLive(res=null,animate=true){
+  const rpm=res?.rpm||0,f=res?.f||0,vc=res?.targetVc||res?.vc||0,ap=res?.ap||0,max=Math.max(1,effectiveMaxRpm()),pct=clamp(rpm/max*100,0,100);
+  const ring=$('#heroGaugeRing');if(ring)ring.style.setProperty('--gauge-pct',`${pct}%`);
+  const cap=$('#heroGaugeCaption');if(cap)cap.textContent=`${Math.round(pct)}% · лимит ${max}`;
+  const pairs=[['#heroRpm',rpm,0],['#heroSinS',rpm,0],['#heroSinF',f,3],['#heroSinVc',vc,1],['#heroSinAp',ap,3]];
+  pairs.forEach(([sel,val,dec])=>animate?animateValue($(sel),val,dec):($(sel).textContent=dec?Number(val).toFixed(dec):String(Math.round(val)).padStart(sel.includes('Rpm')||sel.includes('SinS')?4:1,'0')));
+}
 function modeT(){return state.strategy==='safe'?.20:state.strategy==='productive'?.80:.50}
 function rangeValue(arr,t=modeT()){if(!arr)return 0; if(t<=.5)return lerp(arr[0],arr[1],t*2); return lerp(arr[1],arr[2],(t-.5)*2)}
 function passKey(opId,pass){if(opId==='thread_ext'||opId==='thread_int')return'thread';if(pass==='finish')return'finish';if(opId==='od')return'rough';return opId}
@@ -58,7 +72,8 @@ function goStep(n){
   });
   const active=$(`#stepper [data-step="${n}"]`);active?.scrollIntoView({behavior:'smooth',inline:'center',block:'nearest'});
   saveDraft();
-  setTimeout(()=>window.scrollTo({top:Math.max(0,$('.wizard-wrap').offsetTop-82),behavior:'smooth'}),50);
+  const safeTop=parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--mobile-safe-top'))||0;
+  setTimeout(()=>window.scrollTo({top:Math.max(0,$('.wizard-wrap').offsetTop-(92+safeTop)),behavior:'smooth'}),50);
 }
 $$('[data-next-step]').forEach(b=>b.addEventListener('click',()=>goStep(b.dataset.nextStep)));
 $$('#stepper [data-step]').forEach(b=>b.addEventListener('click',()=>goStep(b.dataset.step)));
@@ -110,8 +125,8 @@ function makeRoute(opId){
   return base;
 }
 function renderOperationCatalog(){
-  $('#operationCatalog').innerHTML=D.operations.map(o=>`<button class="op-add" data-add-op="${o.id}"><strong>${o.icon}</strong><b>${o.name}</b><span>${o.description}</span></button>`).join('');
-  $$('[data-add-op]').forEach(b=>b.addEventListener('click',()=>{state.route.push(makeRoute(b.dataset.addOp));renderRoute();saveDraft();toast(`${operation(b.dataset.addOp).name} добавлена`)}));
+  $('#operationCatalog').innerHTML=D.operations.map(o=>{const count=operationCount(o.id);return `<button class="op-add ${count?'selected':''}" data-add-op="${o.id}" aria-pressed="${count?'true':'false'}"><strong>${o.icon}</strong><i class="op-plus">+</i>${count?`<em class="op-count">×${count}</em>`:''}<b>${o.name}</b><span>${o.description}</span>${count?`<small>В маршруте: ${count}</small>`:'<small>Нажми, чтобы добавить</small>'}</button>`}).join('');
+  $$('[data-add-op]').forEach(b=>b.addEventListener('click',()=>{state.route.push(makeRoute(b.dataset.addOp));renderRoute();saveDraft();toast(`${operation(b.dataset.addOp).name} · ${operationCount(b.dataset.addOp)} в маршруте`)}));
 }
 function toolOptions(route){
   const op=operation(route.opId),m=material(),tools=allTools();
@@ -129,7 +144,7 @@ function opFields(r){
   return dia+`<label class="field">Глубина/длина, мм<input data-rid="${r.uid}" data-rfield="depth" type="number" step="0.1" value="${r.depth}"></label>`;
 }
 function renderRoute(){
-  $('#routeCount').textContent=`${state.route.length} ${state.route.length===1?'операция':'операций'}`;$('#routeEmpty').classList.toggle('hidden',state.route.length>0);
+  const n=state.route.length,word=(n%10===1&&n%100!==11)?'операция':([2,3,4].includes(n%10)&&![12,13,14].includes(n%100)?'операции':'операций');$('#routeCount').textContent=`${n} ${word}`;$('#routeEmpty').classList.toggle('hidden',n>0);renderOperationCatalog();
   const box=$('#routeList');
   box.innerHTML=state.route.map((r,i)=>{const op=operation(r.opId);return `<article class="route-item glass" data-route="${r.uid}"><div class="route-order">${i+1}</div><div class="route-main"><h4>${op.icon} ${op.name}</h4><p>${op.description}</p>${op.supportsPass?`<div class="pass-switch"><button data-pass="rough" data-rid="${r.uid}" class="${r.pass==='rough'?'active':''}">Черновая</button><button data-pass="finish" data-rid="${r.uid}" class="${r.pass==='finish'?'active':''}">Чистовая</button><button data-pass="both" data-rid="${r.uid}" class="${r.pass==='both'?'active':''}">Черновая + чистовая</button></div>`:''}<div class="route-controls">${opFields(r)}<label class="field tool-field">Инструмент<select data-rid="${r.uid}" data-rfield="toolId">${toolOptions(r)}</select></label></div></div><div class="route-actions"><button data-up="${r.uid}" title="Выше">↑</button><button data-down="${r.uid}" title="Ниже">↓</button><button data-remove="${r.uid}" title="Удалить">×</button></div></article>`}).join('');
   box.querySelectorAll('[data-pass]').forEach(b=>b.addEventListener('click',()=>{const r=state.route.find(x=>x.uid===b.dataset.rid);r.pass=b.dataset.pass;renderRoute();saveDraft()}));
@@ -187,7 +202,7 @@ function calculateRoute(){
 }
 function animateOverlay(){return new Promise(resolve=>{
   const ov=$('#calcOverlay'),a=$('#spinDigitA'),b=$('#spinDigitB');ov.classList.remove('hidden');let n=0;const start=performance.now();
-  function frame(ts){const t=(ts-start)/1250;n++;a.textContent=String(Math.floor(400+Math.random()*3200)).padStart(4,'0');b.textContent=(Math.random()*.5).toFixed(3);$('#heroRpm').textContent=a.textContent;if(t<1)requestAnimationFrame(frame);else{setTimeout(()=>{ov.classList.add('hidden');resolve()},160)}}requestAnimationFrame(frame);
+  function frame(ts){const t=(ts-start)/1250;n++;a.textContent=String(Math.floor(400+Math.random()*3200)).padStart(4,'0');b.textContent=(Math.random()*.5).toFixed(3);if(t<1)requestAnimationFrame(frame);else{setTimeout(()=>{ov.classList.add('hidden');resolve()},160)}}requestAnimationFrame(frame);
   });}
 $('#calculateAllBtn').addEventListener('click',async()=>{if(!state.route.length){toast('Маршрут пуст');return}readStock();state.coolant=$('#coolant').value;state.rigidity=$('#rigidity').value;await animateOverlay();calculateRoute();renderResults(true);goStep(5);saveDraft()});
 
@@ -219,14 +234,14 @@ function renderResults(animate=false){
   $('#resultsList').innerHTML=state.results.map((group,i)=>{const op=operation(group.opId),allOk=group.passes.every(p=>p.verified);return `<article class="result-card glass"><div class="result-card-header"><div class="op-number"><b>${String(i+1).padStart(2,'0')}</b></div><div><h3>${op.icon} ${op.name}</h3><p>${state.route.find(x=>x.uid===group.routeUid)?.pass==='both'?'Черновая + чистовая':passLabel(group.passes[0].pass)} · ${group.passes.length} расчёт(а)</p></div><span class="verified-pill ${allOk?'ok':''}">${allOk?'✓ ПРОВЕРЕНО':'НЕ ПРОВЕРЕНО'}</span></div><div class="result-card-body">${group.passes.map((p,j)=>resultPassHtml(p,j)).join('')}</div></article>`}).join('');
   $$('[data-anim]').forEach(el=>animateNumber(el,+el.dataset.anim,+el.dataset.dec));
   $$('[data-feedback]').forEach(b=>b.addEventListener('click',()=>feedbackAction(b.dataset.pass,b.dataset.feedback)));
-  if(animate){const rpm=state.results[0]?.passes[0]?.rpm||0;animateNumber($('#heroRpm'),rpm,0)}
+  if(animate)syncHeroLive(firstResultPass(),true);else if(state.results.length)syncHeroLive(firstResultPass(),false)
 }
 function totalPassCount(){return state.results.reduce((a,g)=>a+g.passes.length,0)}function verifiedCount(){return state.results.reduce((a,g)=>a+g.passes.filter(p=>p.verified).length,0)}
 function getPassById(id){for(const g of state.results){const p=g.passes.find(x=>x.id===id);if(p)return p}return null}
-function feedbackAction(passId,ruleId){const p=getPassById(passId),rule=D.feedbackRules[ruleId];if(!p)return;if(ruleId==='good'){p.verified=true;p.lastFeedback='good';p.verifiedAt=new Date().toISOString();renderResults();toast('Режим этой операции подтверждён');return}
+function feedbackAction(passId,ruleId){const p=getPassById(passId),rule=D.feedbackRules[ruleId];if(!p)return;if(ruleId==='good'){p.verified=true;p.lastFeedback='good';p.verifiedAt=new Date().toISOString();renderResults();syncHeroLive(p,true);toast('Режим этой операции подтверждён');return}
   p.lastFeedback=ruleId;const proposed=deep(p);proposed.rpm=round(p.rpm*rule.mult.rpm);proposed.f=round(p.opId.startsWith('thread')?p.f:clamp(p.f*rule.mult.f,p.range.f[0],p.range.f[2]),3);proposed.ap=round(clamp(p.ap*rule.mult.ap,Math.min(.05,p.range.ap[0]),p.range.ap[2]),3);proposed.vc=round(Math.PI*p.diameter*proposed.rpm/1000,1);proposed.targetVc=proposed.vc;proposed.power=round(p.power*rule.mult.f*rule.mult.ap*rule.mult.rpm,2);proposed.powerPct=round(proposed.power/state.machine.spindleKw*100);proposed.trial={rpm:round(proposed.rpm*.92),f:round(proposed.opId.startsWith('thread')?proposed.f:proposed.f*.88,3),ap:round(proposed.ap*.62,3),vc:round(Math.PI*p.diameter*(proposed.rpm*.92)/1000,1)};
   const host=$(`#adjust-${cssSafe(passId)}`);host.innerHTML=`<div class="adjust-panel"><h5>${rule.icon} ${rule.label}</h5><p>${rule.reason}</p><div class="adjust-compare"><div><small>S rpm</small><del>${p.rpm}</del><b>${proposed.rpm}</b></div><div><small>f mm/rev</small><del>${p.f}</del><b>${proposed.f}</b></div><div><small>ap mm</small><del>${p.ap}</del><b>${proposed.ap}</b></div><div><small>Vc m/min</small><del>${p.vc}</del><b>${proposed.vc}</b></div></div><div class="adjust-actions"><button class="primary" data-apply-adjust="${passId}">Применить новый режим</button><button class="ghost" data-cancel-adjust="${passId}">Отмена</button></div></div>`;
-  host.querySelector('[data-apply-adjust]').addEventListener('click',()=>{Object.assign(p,proposed,{verified:false,revision:p.revision+1});renderResults();toast('Пересчитано. Сделай новый пробный проход')});host.querySelector('[data-cancel-adjust]').addEventListener('click',()=>host.innerHTML='');
+  host.querySelector('[data-apply-adjust]').addEventListener('click',()=>{Object.assign(p,proposed,{verified:false,revision:p.revision+1});renderResults();syncHeroLive(p,true);toast('Пересчитано. Сделай новый пробный проход')});host.querySelector('[data-cancel-adjust]').addEventListener('click',()=>host.innerHTML='');
 }
 
 function projectPayload(){return{id:state.projectId||uid(),name:$('#projectName').value.trim()||'Без названия',savedAt:new Date().toISOString(),machine:deep(state.machine),materialId:state.materialId,stock:deep(state.stock),route:deep(state.route),strategy:state.strategy,coolant:state.coolant,rigidity:state.rigidity,results:deep(state.results),version:D.version}}
@@ -237,12 +252,12 @@ function deleteProject(id){if(!confirm('Удалить проект с этог�
 function renderProjects(){const list=projects(),box=$('#projectsList');if(!list.length){box.innerHTML='<div class="empty-state glass"><b>Проектов пока нет</b><span>Рассчитай техпроцесс и сохрани его — он появится здесь.</span></div>';return}box.innerHTML=list.map(p=>{const m=D.materials.find(x=>x.id===p.materialId),s=p.stock,verified=(p.results||[]).reduce((a,g)=>a+g.passes.filter(x=>x.verified).length,0),total=(p.results||[]).reduce((a,g)=>a+g.passes.length,0);return `<article class="project-card glass"><div><h3>${esc(p.name)}</h3><p>${new Date(p.savedAt).toLocaleString('ru-RU')} · ${m?.name||p.materialId}</p><div class="project-meta"><span>Ø${s.diameter}${s.unit}</span><span>${s.length}${s.unit}</span><span>${p.route?.length||0} операций</span><span>${verified}/${total} проверено</span></div></div><div class="project-actions"><button data-open-project="${p.id}">Открыть</button><button data-delete-project="${p.id}">Удалить</button></div></article>`}).join('');box.querySelectorAll('[data-open-project]').forEach(b=>b.addEventListener('click',()=>openProject(b.dataset.openProject)));box.querySelectorAll('[data-delete-project]').forEach(b=>b.addEventListener('click',()=>deleteProject(b.dataset.deleteProject)))}
 function esc(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
 
-function newProject(){if(state.route.length||state.results.length){if(!confirm('Начать новый проект? Несохранённые данные будут сброшены.'))return}state.projectId=null;state.materialId='aisi304';state.stock={diameter:50,length:100,unit:'mm',hardness:180};state.route=[];state.strategy='work';state.coolant='emulsion';state.rigidity='medium';state.results=[];$('#projectName').value='Новая деталь';store.set(KEYS.draft,null);renderMaterials();syncStockUI();renderRoute();syncStrategy();goStep(1);toast('Новый проект')}
+function newProject(){if(state.route.length||state.results.length){if(!confirm('Начать новый проект? Несохранённые данные будут сброшены.'))return}state.projectId=null;state.materialId='aisi304';state.stock={diameter:50,length:100,unit:'mm',hardness:180};state.route=[];state.strategy='work';state.coolant='emulsion';state.rigidity='medium';state.results=[];$('#projectName').value='Новая деталь';store.set(KEYS.draft,null);renderMaterials();syncStockUI();renderRoute();syncStrategy();syncHeroLive(null,false);goStep(1);toast('Новый проект')}
 $('#resetDraft').addEventListener('click',newProject);$('#newProjectBtn').addEventListener('click',newProject);
 
 function printProject(){if(!state.results.length){toast('Нет рассчитанного проекта');return}window.print()}
 ['printProjectBtn','printProjectTop'].forEach(id=>$('#'+id).addEventListener('click',printProject));
-function exportPng(){if(!state.results.length){toast('Нет рассчитанного проекта');return}const c=$('#exportCanvas'),ctx=c.getContext('2d'),w=c.width,h=c.height;const grad=ctx.createLinearGradient(0,0,w,h);grad.addColorStop(0,'#071624');grad.addColorStop(1,'#04080d');ctx.fillStyle=grad;ctx.fillRect(0,0,w,h);ctx.fillStyle='#6bbaff';ctx.font='700 26px system-ui';ctx.fillText('CNC COPILOT · FULL 1.0',70,80);ctx.fillStyle='#f7fbff';ctx.font='800 56px system-ui';ctx.fillText($('#projectName').value||'Техпроцесс',70,155);const s=stockMm(),m=material();ctx.fillStyle='#9db0c0';ctx.font='26px system-ui';ctx.fillText(`${state.machine.name} · ${m.name} · Ø${round(s.diameter,1)} × ${round(s.length,1)} мм`,70,210);let y=285;state.results.slice(0,9).forEach((g,i)=>{ctx.fillStyle='rgba(255,255,255,.07)';roundRect(ctx,60,y-38,1080,125,25);ctx.fill();ctx.fillStyle='#f7fbff';ctx.font='700 28px system-ui';ctx.fillText(`${String(i+1).padStart(2,'0')}  ${operation(g.opId).name}`,85,y);let x=85;g.passes.forEach((p,j)=>{ctx.fillStyle=j?'#86e2b2':'#8fcaff';ctx.font='600 20px system-ui';ctx.fillText(`${passLabel(p.pass)}: S ${p.rpm}  f ${p.f}  Vc ${p.vc}  ap ${p.ap}${p.verified?'  ✓':''}`,x,y+42+j*31)});y+=145});ctx.fillStyle='#71879a';ctx.font='18px system-ui';ctx.fillText('Стартовая технологическая рекомендация. Проверяй зажим, траекторию, нули и лимиты станка.',70,h-70);c.toBlob(blob=>{const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`CNC-${safeName($('#projectName').value)}.png`;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),500)},'image/png')}
+function exportPng(){if(!state.results.length){toast('Нет рассчитанного проекта');return}const c=$('#exportCanvas'),ctx=c.getContext('2d'),w=c.width,h=c.height;const grad=ctx.createLinearGradient(0,0,w,h);grad.addColorStop(0,'#071624');grad.addColorStop(1,'#04080d');ctx.fillStyle=grad;ctx.fillRect(0,0,w,h);ctx.fillStyle='#6bbaff';ctx.font='700 26px system-ui';ctx.fillText('CNC COPILOT · FULL 1.0.1',70,80);ctx.fillStyle='#f7fbff';ctx.font='800 56px system-ui';ctx.fillText($('#projectName').value||'Техпроцесс',70,155);const s=stockMm(),m=material();ctx.fillStyle='#9db0c0';ctx.font='26px system-ui';ctx.fillText(`${state.machine.name} · ${m.name} · Ø${round(s.diameter,1)} × ${round(s.length,1)} мм`,70,210);let y=285;state.results.slice(0,9).forEach((g,i)=>{ctx.fillStyle='rgba(255,255,255,.07)';roundRect(ctx,60,y-38,1080,125,25);ctx.fill();ctx.fillStyle='#f7fbff';ctx.font='700 28px system-ui';ctx.fillText(`${String(i+1).padStart(2,'0')}  ${operation(g.opId).name}`,85,y);let x=85;g.passes.forEach((p,j)=>{ctx.fillStyle=j?'#86e2b2':'#8fcaff';ctx.font='600 20px system-ui';ctx.fillText(`${passLabel(p.pass)}: S ${p.rpm}  f ${p.f}  Vc ${p.vc}  ap ${p.ap}${p.verified?'  ✓':''}`,x,y+42+j*31)});y+=145});ctx.fillStyle='#71879a';ctx.font='18px system-ui';ctx.fillText('Стартовая технологическая рекомендация. Проверяй зажим, траекторию, нули и лимиты станка.',70,h-70);c.toBlob(blob=>{const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`CNC-${safeName($('#projectName').value)}.png`;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),500)},'image/png')}
 function roundRect(ctx,x,y,w,h,r){ctx.beginPath();ctx.roundRect?ctx.roundRect(x,y,w,h,r):(ctx.rect(x,y,w,h));}
 function safeName(s){return String(s||'project').replace(/[^a-zA-Z0-9а-яА-ЯёЁ_-]+/g,'_').slice(0,60)}
 $('#exportPngBtn').addEventListener('click',exportPng);
@@ -275,6 +290,6 @@ function syncStrategy(){$$('#strategySwitch [data-strategy]').forEach(b=>b.class
 function initOfflineStatus(){function upd(){const label=$('#offlineLabel');label.textContent=navigator.onLine?'OFFLINE CORE · ONLINE':'OFFLINE CORE · NO NETWORK';label.style.color=navigator.onLine?'':'#69dfa8'}window.addEventListener('online',upd);window.addEventListener('offline',upd);upd()}
 function registerSW(){if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}))}
 
-function init(){syncMachineUI();renderMaterials();syncStockUI();renderOperationCatalog();renderRoute();syncStrategy();renderPreflight();renderTools();renderProjects();renderReference();initOfflineStatus();goStep(state.step||1);registerSW();}
+function init(){syncMachineUI();renderMaterials();syncStockUI();renderOperationCatalog();renderRoute();syncStrategy();renderPreflight();renderTools();renderProjects();renderReference();initOfflineStatus();syncHeroLive(firstResultPass(),false);goStep(state.step||1);registerSW();}
 init();
 })();
