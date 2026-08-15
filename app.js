@@ -63,11 +63,21 @@ function renderTools(){
     </button>`).join("");
   qa("[data-tool]").forEach(b=>b.onclick=()=>{state.tool=b.dataset.tool;renderTools()})
 }
+function centerActiveStep(n,behavior="smooth"){
+  const stepper=q("#stepper");
+  const active=q(`.step[data-go="${n}"]`);
+  if(!stepper||!active)return;
+  requestAnimationFrame(()=>{
+    const target=active.offsetLeft-(stepper.clientWidth-active.offsetWidth)/2;
+    stepper.scrollTo({left:Math.max(0,target),behavior});
+  });
+}
 function gotoStep(n){
   state.step=n;
   qa(".screen").forEach(s=>s.classList.toggle("active",+s.dataset.screen===n));
   qa(".step").forEach(s=>s.classList.toggle("active",+s.dataset.go===n));
-  window.scrollTo({top:120,behavior:"smooth"});
+  centerActiveStep(n);
+  window.scrollTo({top:110,behavior:"smooth"});
   if(n===5) calculate();
   if(n===6) renderTrial();
 }
@@ -138,9 +148,15 @@ function renderResult(){
 }
 function renderTrial(){
   const r=state.adjusted||state.result||{rpm:0,feed:0,ap:0};
-  q("#trialS").textContent=round(r.rpm*.90);
-  q("#trialF").textContent=round(r.feed*.82,2).toFixed(2);
-  q("#trialAp").textContent=round(Math.max(.2,r.ap*.45),2).toFixed(2).replace(/0$/,"");
+  const d=+q("#diameter").value||120;
+  const trialRpm=round(r.rpm*.90);
+  const trialFeed=round(r.feed*.82,2);
+  const trialAp=round(Math.max(.2,r.ap*.45),2);
+  const trialVc=round(Math.PI*d*trialRpm/1000);
+  q("#trialS").textContent=trialRpm;
+  q("#trialF").textContent=trialFeed.toFixed(2);
+  q("#trialVc").textContent=trialVc;
+  q("#trialAp").textContent=trialAp.toFixed(2).replace(/0$/,"");
   q("#adjustCard").classList.add("hidden");
 }
 
@@ -153,9 +169,22 @@ const feedbackRules={
   surface:{reason:"Плохая поверхность: уменьшаем подачу и глубину, чуть снижаем обороты.",rpm:.92,feed:.78,ap:.72}
 };
 qa("[data-feedback]").forEach(b=>b.onclick=()=>{
-  const rule=feedbackRules[b.dataset.feedback];
+  const key=b.dataset.feedback;
+  const rule=feedbackRules[key];
   const base=state.adjusted||state.result;
   if(!base)return;
+
+  if(key==="good"){
+    q("#adjustReason").textContent=rule.reason;
+    q("#oldS").textContent=`${base.rpm} rpm`;q("#newS").textContent=`${base.rpm} rpm`;
+    q("#oldF").textContent=`${base.feed.toFixed(2)}`;q("#newF").textContent=`${base.feed.toFixed(2)}`;
+    q("#oldAp").textContent=`${base.ap}`;q("#newAp").textContent=`${base.ap}`;
+    q("#adjustCard").classList.remove("hidden");
+    q("#applyAdjustBtn").textContent="Вернуться к рабочему режиму";
+    q("#applyAdjustBtn").onclick=()=>gotoStep(5);
+    return;
+  }
+
   const d=+q("#diameter").value||120;
   const next={
     rpm:round(base.rpm*rule.rpm),
@@ -168,6 +197,7 @@ qa("[data-feedback]").forEach(b=>b.onclick=()=>{
   q("#oldF").textContent=`${base.feed.toFixed(2)}`;q("#newF").textContent=`${next.feed.toFixed(2)}`;
   q("#oldAp").textContent=`${base.ap}`;q("#newAp").textContent=`${next.ap}`;
   q("#adjustCard").classList.remove("hidden");
+  q("#applyAdjustBtn").textContent="Применить новый режим";
   q("#applyAdjustBtn").onclick=()=>{state.adjusted=next;renderResult();renderTrial();gotoStep(5)}
 });
 
@@ -206,6 +236,7 @@ renderMaterials();
 renderTools();
 renderHistory();
 calculate();
+centerActiveStep(1,"auto");
 
 if("serviceWorker" in navigator){
   window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").catch(()=>{}));

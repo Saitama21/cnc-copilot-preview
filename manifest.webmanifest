@@ -1,5 +1,5 @@
 {
-  "name": "CNC Copilot Preview",
+  "name": "CNC Copilot Preview v0.1.1",
   "short_name": "CNC Copilot",
   "start_url": "./",
   "display": "standalone",
@@ -13,5 +13,6 @@
       "type": "image/svg+xml",
       "purpose": "any maskable"
     }
-  ]
+  ],
+  "description": "iPhone-first CNC cutting-parameter preview with guided first-pass control"
 }
