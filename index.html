@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no" />
+  <meta name="theme-color" content="#07111f" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="CNC Copilot" />
+  <title>CNC Copilot Preview</title>
+  <link rel="manifest" href="./manifest.webmanifest" />
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <div class="aurora a1"></div>
+  <div class="aurora a2"></div>
+
+  <main class="app-shell">
+    <header class="topbar glass">
+      <div class="brand">
+        <div class="brand-mark">C</div>
+        <div>
+          <strong>CNC Copilot</strong>
+          <small>Preview v0.1.0 · iPhone-first</small>
+        </div>
+      </div>
+      <button class="icon-btn" id="resetBtn" title="Сбросить">↻</button>
+    </header>
+
+    <section class="hero">
+      <p class="eyebrow">ТВОЙ СТАНОК · ТВОЙ ИНСТРУМЕНТ · ТВОЙ РЕЖИМ</p>
+      <h1>От заготовки до первого прохода</h1>
+      <p>Пошаговый расчёт S, F, Vc и ap с учётом станка, материала и инструмента.</p>
+    </section>
+
+    <section class="stepper glass" id="stepper">
+      <button class="step active" data-go="1"><span>1</span><b>Станок</b></button>
+      <i>›</i>
+      <button class="step" data-go="2"><span>2</span><b>Материал</b></button>
+      <i>›</i>
+      <button class="step" data-go="3"><span>3</span><b>Инструмент</b></button>
+      <i>›</i>
+      <button class="step" data-go="4"><span>4</span><b>Деталь</b></button>
+      <i>›</i>
+      <button class="step" data-go="5"><span>5</span><b>Режим</b></button>
+      <i>›</i>
+      <button class="step" data-go="6"><span>6</span><b>Проба</b></button>
+    </section>
+
+    <section class="screen active" data-screen="1">
+      <div class="section-head">
+        <div><small>ШАГ 1</small><h2>Выбери станок</h2></div>
+        <span class="pill">Каталог станков</span>
+      </div>
+
+      <div class="machine-grid">
+        <button class="machine-card glass selected" data-machine="ck52">
+          <div class="machine-visual">
+            <div class="lathe"><span></span><span></span><span></span></div>
+          </div>
+          <div class="machine-info">
+            <div class="card-title">Tengyue CK52PT‑Y</div>
+            <p>SINUMERIK 828D · ShopTurn</p>
+            <div class="stats"><span>4000 rpm</span><span>11 kW</span><span>Y/C</span></div>
+          </div>
+          <div class="check">✓</div>
+        </button>
+
+        <button class="machine-card glass" data-machine="custom">
+          <div class="machine-visual alt"><div class="plus">＋</div></div>
+          <div class="machine-info">
+            <div class="card-title">Другой станок</div>
+            <p>Пользовательский профиль</p>
+            <div class="stats"><span>свой RPM</span><span>свои лимиты</span></div>
+          </div>
+        </button>
+      </div>
+
+      <div class="custom-machine glass hidden" id="customMachine">
+        <label>Название<input id="customMachineName" value="Мой станок"></label>
+        <div class="two">
+          <label>Макс. обороты<input type="number" id="customMaxRpm" value="3000"></label>
+          <label>Мощность, кВт<input type="number" id="customKw" value="7.5" step="0.1"></label>
+        </div>
+      </div>
+
+      <button class="primary next" data-next="2">Дальше → материал</button>
+    </section>
+
+    <section class="screen" data-screen="2">
+      <div class="section-head">
+        <div><small>ШАГ 2</small><h2>Материал заготовки</h2></div>
+        <span class="pill">ISO-группа</span>
+      </div>
+
+      <div class="material-list" id="materialList"></div>
+      <button class="primary next" data-next="3">Дальше → инструмент</button>
+    </section>
+
+    <section class="screen" data-screen="3">
+      <div class="section-head">
+        <div><small>ШАГ 3</small><h2>Инструмент</h2></div>
+        <span class="pill">Твой инструментальный шкаф</span>
+      </div>
+
+      <div class="tool-list" id="toolList"></div>
+
+      <div class="scan-card glass">
+        <div class="scan-icon">⌁</div>
+        <div>
+          <strong>Распознавание по фото</strong>
+          <p>В этой Preview пока макет. В следующем слое добавим фото коробки/пластины.</p>
+        </div>
+        <span class="soon">AI позже</span>
+      </div>
+
+      <button class="primary next" data-next="4">Дальше → деталь</button>
+    </section>
+
+    <section class="screen" data-screen="4">
+      <div class="section-head">
+        <div><small>ШАГ 4</small><h2>Заготовка и операция</h2></div>
+        <span class="pill">X/Z</span>
+      </div>
+
+      <div class="stock-card glass">
+        <div class="stock-visual">
+          <div class="cylinder"></div>
+          <div class="dim dim-d">Ø <span id="dimD">120</span></div>
+          <div class="dim dim-l"><span id="dimL">30</span> mm</div>
+        </div>
+        <div class="two">
+          <label>Диаметр Ø, мм<input type="number" id="diameter" value="120" min="1" step="0.1"></label>
+          <label>Длина, мм<input type="number" id="length" value="30" min="1" step="0.1"></label>
+        </div>
+      </div>
+
+      <h3>Операция</h3>
+      <div class="operation-grid" id="operationGrid">
+        <button class="op selected" data-op="rough">◒ <span>Наружная<br>черновая</span></button>
+        <button class="op" data-op="finish">◐ <span>Чистовое<br>точение</span></button>
+        <button class="op" data-op="face">⊙ <span>Торцевание</span></button>
+        <button class="op" data-op="bore">◎ <span>Расточка</span></button>
+        <button class="op" data-op="groove">⌗ <span>Канавка</span></button>
+        <button class="op" data-op="part">╱ <span>Отрезка</span></button>
+      </div>
+
+      <div class="process-grid glass">
+        <label>СОЖ
+          <select id="coolant">
+            <option value="emulsion">Эмульсия</option>
+            <option value="oil">Масло</option>
+            <option value="dry">Без СОЖ</option>
+          </select>
+        </label>
+        <label>Жёсткость
+          <select id="rigidity">
+            <option value="medium">Средняя</option>
+            <option value="high">Высокая</option>
+            <option value="low">Низкая</option>
+          </select>
+        </label>
+      </div>
+
+      <button class="primary" id="calculateBtn">Рассчитать режимы</button>
+    </section>
+
+    <section class="screen" data-screen="5">
+      <div class="section-head">
+        <div><small>ШАГ 5</small><h2>Режимы резания</h2></div>
+        <span class="pill" id="resultContext">—</span>
+      </div>
+
+      <div class="mode-switch glass">
+        <button data-mode="safe">Безопасный</button>
+        <button data-mode="work" class="active">Рабочий</button>
+        <button data-mode="fast">Производительный</button>
+      </div>
+
+      <div class="result-grid">
+        <div class="metric glass blue"><small>S · шпиндель</small><strong id="rpmOut">—</strong><span>rpm</span></div>
+        <div class="metric glass green"><small>F · подача</small><strong id="feedOut">—</strong><span>mm/rev</span></div>
+        <div class="metric glass amber"><small>Vc · скорость</small><strong id="vcOut">—</strong><span>m/min</span></div>
+        <div class="metric glass violet"><small>ap · глубина</small><strong id="apOut">—</strong><span>mm</span></div>
+      </div>
+
+      <div class="sinumerik-card glass">
+        <div class="sinumerik-head"><span>SIEMENS</span><b>Что ставить в стойку</b></div>
+        <div class="sin-row"><span>Spindle S</span><code id="sinS">S---</code></div>
+        <div class="sin-row"><span>Feed F</span><code id="sinF">F---</code></div>
+        <div class="sin-row"><span>Direction</span><code>M3</code></div>
+      </div>
+
+      <details class="why glass">
+        <summary>Почему именно такие значения?</summary>
+        <p id="whyText"></p>
+      </details>
+
+      <button class="secondary" id="saveModeBtn">☆ Сохранить удачный режим</button>
+      <button class="primary next" data-next="6">Первый пробный проход →</button>
+    </section>
+
+    <section class="screen" data-screen="6">
+      <div class="section-head">
+        <div><small>ШАГ 6</small><h2>Первый проход</h2></div>
+        <span class="pill greenish">Контроль</span>
+      </div>
+
+      <div class="trial-card glass">
+        <div class="trial-title">Рекомендация для безопасной проверки</div>
+        <p>На первом проходе снижаем нагрузку. После него выбери, что увидел или услышал.</p>
+        <div class="trial-metrics">
+          <div><small>S</small><b id="trialS">—</b><span>rpm</span></div>
+          <div><small>F</small><b id="trialF">—</b><span>mm/rev</span></div>
+          <div><small>ap</small><b id="trialAp">—</b><span>mm</span></div>
+        </div>
+      </div>
+
+      <h3>Как прошёл проход?</h3>
+      <div class="feedback-grid">
+        <button data-feedback="good">✅ Всё отлично</button>
+        <button data-feedback="vibration">⚠️ Вибрация / дрожание</button>
+        <button data-feedback="squeal">🔊 Свист / шум</button>
+        <button data-feedback="chips">🌀 Стружка не ломается</button>
+        <button data-feedback="heat">🔥 Перегрев / дым</button>
+        <button data-feedback="surface">✕ Плохая поверхность</button>
+      </div>
+
+      <div class="adjust glass hidden" id="adjustCard">
+        <small>РЕКОМЕНДУЕМАЯ КОРРЕКТИРОВКА</small>
+        <h3 id="adjustReason">—</h3>
+        <div class="adjust-table">
+          <div><span>S</span><del id="oldS">—</del><b id="newS">—</b></div>
+          <div><span>F</span><del id="oldF">—</del><b id="newF">—</b></div>
+          <div><span>ap</span><del id="oldAp">—</del><b id="newAp">—</b></div>
+        </div>
+        <button class="primary" id="applyAdjustBtn">Применить новый режим</button>
+      </div>
+
+      <button class="secondary" id="newCalcBtn">＋ Новый расчёт</button>
+    </section>
+
+    <section class="history glass">
+      <div class="section-head compact">
+        <div><small>ЛОКАЛЬНО НА ТЕЛЕФОНЕ</small><h2>История режимов</h2></div>
+        <button class="icon-btn" id="clearHistoryBtn">⌫</button>
+      </div>
+      <div id="historyList" class="history-list">
+        <div class="empty">Пока ничего не сохранено.</div>
+      </div>
+    </section>
+
+    <footer>
+      <span>CNC Copilot Preview</span>
+      <span>Расчёты — стартовая рекомендация. Первый пуск всегда контролируй на станке.</span>
+    </footer>
+  </main>
+
+  <script src="./app.js"></script>
+</body>
+</html>
