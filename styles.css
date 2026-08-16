@@ -173,3 +173,60 @@ html[data-accent="P"]{--iso-rgb:73,151,255;--iso-color:#4997ff}html[data-accent=
 @media(max-width:767px){
   body:before{content:"";position:fixed;z-index:119;left:0;right:0;top:0;height:max(8px,env(safe-area-inset-top,0px));background:#050a10;pointer-events:none}
 }
+
+/* FULL 1.1.1 FIXED — invariant screen rails from the proven 2.3.0 layout. */
+html,body{
+  width:100%;
+  max-width:100%;
+  overflow-x:clip;
+}
+.app-frame,.main-shell,.view{
+  min-width:0;
+  max-width:100%;
+}
+
+@media(max-width:767px){
+  html,body{min-height:100%;overscroll-behavior-x:none}
+  body{position:relative;width:100%;min-height:100dvh}
+  .app-frame{width:100%;min-height:100dvh;overflow-x:clip}
+  .main-shell{
+    width:100%;
+    padding-top:calc(80px + env(safe-area-inset-top,0px))!important;
+    padding-bottom:calc(102px + env(safe-area-inset-bottom,0px))!important;
+    overflow-x:clip;
+  }
+  .main-shell > .topbar.glass{
+    position:fixed!important;
+    z-index:150;
+    top:max(7px,env(safe-area-inset-top,0px));
+    left:8px;
+    right:8px;
+    width:auto;
+    max-width:none;
+    margin:0;
+    transform:translate3d(0,0,0)!important;
+    opacity:1!important;
+    visibility:visible!important;
+    pointer-events:auto!important;
+  }
+  body > .bottom-nav.glass{
+    position:fixed!important;
+    z-index:150;
+    left:8px;
+    right:8px;
+    bottom:max(7px,env(safe-area-inset-bottom,0px))!important;
+    width:auto;
+    max-width:none;
+    margin:0;
+    transform:translate3d(0,0,0)!important;
+    opacity:1!important;
+    visibility:visible!important;
+    pointer-events:auto!important;
+  }
+  body > .bottom-nav.glass > button{
+    opacity:1!important;
+    visibility:visible!important;
+    pointer-events:auto!important;
+  }
+  .view.active{width:100%;max-width:100%;overflow-x:clip}
+}
