@@ -79,21 +79,28 @@ function navView(name){
     $$('[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===name));
   });
   if(name==='tools')renderTools(); if(name==='projects')renderProjects(); if(name==='reference')renderReference();
-  window.scrollTo({top:0,behavior:'smooth'});
+  window.scrollTo({top:0,behavior:'instant'});
 }
 $$('[data-view]').forEach(b=>b.addEventListener('click',()=>navView(b.dataset.view)));
 
-function goStep(n){
+function goStep(n,scroll=true){
   n=clamp(+n,1,5);state.step=n;
+  document.documentElement.dataset.stepCurrent=String(n);
+  document.body.classList.toggle('compact-work',n>1);
   transition(()=>{
     $$('[data-step-panel]').forEach(p=>p.classList.toggle('active',+p.dataset.stepPanel===n));
     $$('#stepper [data-step]').forEach(b=>{const s=+b.dataset.step;b.classList.toggle('active',s===n);b.classList.toggle('done',s<n)});
     $('#stepCaption').textContent=`Шаг ${n} из 5`;
   });
-  const active=$(`#stepper [data-step="${n}"]`);active?.scrollIntoView({behavior:'smooth',inline:'center',block:'nearest'});
   saveDraft();
-  const safeTop=parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--mobile-safe-top'))||0;
-  setTimeout(()=>window.scrollTo({top:Math.max(0,$('.wizard-wrap').offsetTop-(92+safeTop)),behavior:'smooth'}),50);
+  if(scroll){
+    const safeTop=parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--mobile-safe-top'))||0;
+    setTimeout(()=>{
+      const wiz=$('.wizard-wrap'),bar=$('.topbar');if(!wiz)return;
+      const top=wiz.getBoundingClientRect().top+window.scrollY-((bar?.offsetHeight||62)+safeTop+14);
+      window.scrollTo({top:Math.max(0,top),behavior:'smooth'});
+    },90);
+  }
 }
 $$('[data-next-step]').forEach(b=>b.addEventListener('click',()=>goStep(b.dataset.nextStep)));
 $$('#stepper [data-step]').forEach(b=>b.addEventListener('click',()=>goStep(b.dataset.step)));
@@ -182,7 +189,10 @@ function opFields(r){
   return dia+`<label class="field">Глубина/длина, мм<input data-rid="${r.uid}" data-rfield="depth" type="number" step="0.1" value="${r.depth}"></label>`;
 }
 function renderRoute(){
-  const n=state.route.length,word=(n%10===1&&n%100!==11)?'операция':([2,3,4].includes(n%10)&&![12,13,14].includes(n%100)?'операции':'операций');$('#routeCount').textContent=`${n} ${word}`;$('#routeEmpty').classList.toggle('hidden',n>0);renderOperationCatalog();renderProcessToolTray();
+  const n=state.route.length,word=(n%10===1&&n%100!==11)?'операция':([2,3,4].includes(n%10)&&![12,13,14].includes(n%100)?'операции':'операций');$('#routeCount').textContent=`${n} ${word}`;$('#routeEmpty').classList.toggle('hidden',n>0);
+  const toolsCard=$('#processToolsCard');if(toolsCard)toolsCard.classList.toggle('hidden',n===0);
+  const next=$('#toStrategyBtn');if(next){next.disabled=n===0;next.classList.toggle('is-disabled',n===0);next.setAttribute('aria-disabled',String(n===0));}
+  renderOperationCatalog();renderProcessToolTray();
   const box=$('#routeList');
   box.innerHTML=state.route.map((r,i)=>{const op=operation(r.opId),assigned=recommendTool(r,r.pass==='finish'?'finish':'rough'),reqs=requirementsForRoute(r);return `<article class="route-item glass iso-tint" data-iso="${material().iso}" data-route="${r.uid}"><div class="route-order">${i+1}</div><div class="route-main"><div class="route-title-line"><div><h4>${op.icon} ${op.name}</h4><p>${op.description}</p></div><span class="assigned-mini">${assigned?.libraryType==='cupboard'?'● МОЙ ШКАФ':'○ КАТАЛОГ'}<b>${esc(assigned?.insert||'не назначено')}</b></span></div>${reqs.length?`<div class="route-requirements">${reqs.map(x=>`<span>${esc(requirementLabel(x))}</span>`).join('')}</div>`:''}${op.supportsPass?`<div class="pass-switch"><button data-pass="rough" data-rid="${r.uid}" class="${r.pass==='rough'?'active':''}">Черновая</button><button data-pass="finish" data-rid="${r.uid}" class="${r.pass==='finish'?'active':''}">Чистовая</button><button data-pass="both" data-rid="${r.uid}" class="${r.pass==='both'?'active':''}">Черновая + чистовая</button></div>`:''}<div class="route-controls">${opFields(r)}<label class="field tool-field">Инструмент<select data-rid="${r.uid}" data-rfield="toolId">${toolOptions(r)}</select></label></div></div><div class="route-actions"><button data-up="${r.uid}" title="Выше">↑</button><button data-down="${r.uid}" title="Ниже">↓</button><button data-remove="${r.uid}" title="Удалить">×</button></div></article>`}).join('');
   box.querySelectorAll('[data-pass]').forEach(b=>b.addEventListener('click',()=>{const r=state.route.find(x=>x.uid===b.dataset.rid);r.pass=b.dataset.pass;renderRoute();saveDraft()}));
@@ -310,15 +320,20 @@ $('#resetDraft').addEventListener('click',newProject);$('#newProjectBtn').addEve
 
 function printProject(){if(!state.results.length){toast('Нет рассчитанного проекта');return}window.print()}
 ['printProjectBtn','printProjectTop'].forEach(id=>$('#'+id).addEventListener('click',printProject));
-function exportPng(){if(!state.results.length){toast('Нет рассчитанного проекта');return}const c=$('#exportCanvas'),ctx=c.getContext('2d'),w=c.width,h=c.height;const grad=ctx.createLinearGradient(0,0,w,h);grad.addColorStop(0,'#071624');grad.addColorStop(1,'#04080d');ctx.fillStyle=grad;ctx.fillRect(0,0,w,h);ctx.fillStyle='#6bbaff';ctx.font='700 26px system-ui';ctx.fillText('CNC COPILOT · FULL 1.1.0',70,80);ctx.fillStyle='#f7fbff';ctx.font='800 56px system-ui';ctx.fillText($('#projectName').value||'Техпроцесс',70,155);const s=stockMm(),m=material();ctx.fillStyle='#9db0c0';ctx.font='26px system-ui';ctx.fillText(`${state.machine.name} · ${m.name} · Ø${round(s.diameter,1)} × ${round(s.length,1)} мм`,70,210);let y=285;state.results.slice(0,9).forEach((g,i)=>{ctx.fillStyle='rgba(255,255,255,.07)';roundRect(ctx,60,y-38,1080,125,25);ctx.fill();ctx.fillStyle='#f7fbff';ctx.font='700 28px system-ui';ctx.fillText(`${String(i+1).padStart(2,'0')}  ${operation(g.opId).name}`,85,y);let x=85;g.passes.forEach((p,j)=>{ctx.fillStyle=j?'#86e2b2':'#8fcaff';ctx.font='600 20px system-ui';ctx.fillText(`${passLabel(p.pass)}: S ${p.rpm}  f ${p.f}  Vc ${p.vc}  ap ${p.ap}${p.verified?'  ✓':''}`,x,y+42+j*31)});y+=145});ctx.fillStyle='#71879a';ctx.font='18px system-ui';ctx.fillText('Стартовая технологическая рекомендация. Проверяй зажим, траекторию, нули и лимиты станка.',70,h-70);c.toBlob(blob=>{const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`CNC-${safeName($('#projectName').value)}.png`;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),500)},'image/png')}
+function exportPng(){if(!state.results.length){toast('Нет рассчитанного проекта');return}const c=$('#exportCanvas'),ctx=c.getContext('2d'),w=c.width,h=c.height;const grad=ctx.createLinearGradient(0,0,w,h);grad.addColorStop(0,'#071624');grad.addColorStop(1,'#04080d');ctx.fillStyle=grad;ctx.fillRect(0,0,w,h);ctx.fillStyle='#6bbaff';ctx.font='700 26px system-ui';ctx.fillText('CNC COPILOT · FULL 1.1.1',70,80);ctx.fillStyle='#f7fbff';ctx.font='800 56px system-ui';ctx.fillText($('#projectName').value||'Техпроцесс',70,155);const s=stockMm(),m=material();ctx.fillStyle='#9db0c0';ctx.font='26px system-ui';ctx.fillText(`${state.machine.name} · ${m.name} · Ø${round(s.diameter,1)} × ${round(s.length,1)} мм`,70,210);let y=285;state.results.slice(0,9).forEach((g,i)=>{ctx.fillStyle='rgba(255,255,255,.07)';roundRect(ctx,60,y-38,1080,125,25);ctx.fill();ctx.fillStyle='#f7fbff';ctx.font='700 28px system-ui';ctx.fillText(`${String(i+1).padStart(2,'0')}  ${operation(g.opId).name}`,85,y);let x=85;g.passes.forEach((p,j)=>{ctx.fillStyle=j?'#86e2b2':'#8fcaff';ctx.font='600 20px system-ui';ctx.fillText(`${passLabel(p.pass)}: S ${p.rpm}  f ${p.f}  Vc ${p.vc}  ap ${p.ap}${p.verified?'  ✓':''}`,x,y+42+j*31)});y+=145});ctx.fillStyle='#71879a';ctx.font='18px system-ui';ctx.fillText('Стартовая технологическая рекомендация. Проверяй зажим, траекторию, нули и лимиты станка.',70,h-70);c.toBlob(blob=>{const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`CNC-${safeName($('#projectName').value)}.png`;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),500)},'image/png')}
 function roundRect(ctx,x,y,w,h,r){ctx.beginPath();ctx.roundRect?ctx.roundRect(x,y,w,h,r):(ctx.rect(x,y,w,h));}
 function safeName(s){return String(s||'project').replace(/[^a-zA-Z0-9а-яА-ЯёЁ_-]+/g,'_').slice(0,60)}
 $('#exportPngBtn').addEventListener('click',exportPng);
 
+function toolLibraryCardHtml(t){return `<article class="tool-card-ui glass iso-tint ${t.libraryType==='cupboard'?'mine':''}" data-iso="${t.iso?.[0]||'P'}"><div class="tool-art real-tool-art">${toolThumbHtml(t,t.id)}${toolSideThumb(t)}</div><div class="tool-card-copy"><div class="tool-card-top"><span class="badge ${t.libraryType==='cupboard'?'green':''}">${t.libraryType==='cupboard'?'МОЙ ШКАФ':'КАТАЛОГ'}</span>${t.libraryType==='cupboard'?`<span class="stock-pill">${esc(t.location||'без ячейки')} · ${t.quantity||0} шт.</span>`:''}</div><h3>${esc(t.holder||'Державка не указана')}</h3><p><b>${esc(t.insert)}</b> · ${esc(t.grade)} · ${esc(t.breaker)} · ${noseLabel(t)}</p><div class="tool-tags"><span>ISO ${(t.iso||[]).join('/')}</span><span>${esc(toolUseText(t))}</span></div>${isoDotsHtml(t)}${t.libraryType==='cupboard'?`<div class="tool-local-actions"><button data-tool-qty="${t.id}" data-delta="1">+1</button><button data-tool-qty="${t.id}" data-delta="-1">−1</button><button data-tool-delete="${t.id}">Удалить</button></div>`:''}</div></article>`}
 function renderTools(){
-  const q=($('#toolSearch')?.value||'').trim().toLowerCase(),iso=$('#toolIsoFilter')?.value||'all';let tools=allTools();
-  tools=tools.filter(t=>(iso==='all'||t.iso.includes(iso))&&(!q||[t.holder,t.insert,t.grade,t.breaker,t.location,t.manufacturer].join(' ').toLowerCase().includes(q)));
-  $('#toolLibrary').innerHTML=tools.map(t=>`<article class="tool-card-ui glass iso-tint ${t.libraryType==='cupboard'?'mine':''}" data-iso="${t.iso?.[0]||'P'}"><div class="tool-art real-tool-art">${toolThumbHtml(t,t.id)}${toolSideThumb(t)}</div><div class="tool-card-copy"><div class="tool-card-top"><span class="badge ${t.libraryType==='cupboard'?'green':''}">${t.libraryType==='cupboard'?'МОЙ ШКАФ':'КАТАЛОГ'}</span>${t.libraryType==='cupboard'?`<span class="stock-pill">${esc(t.location||'без ячейки')} · ${t.quantity||0} шт.</span>`:''}</div><h3>${esc(t.holder||'Державка не указана')}</h3><p><b>${esc(t.insert)}</b> · ${esc(t.grade)} · ${esc(t.breaker)} · ${noseLabel(t)}</p><div class="tool-tags"><span>ISO ${(t.iso||[]).join('/')}</span><span>${esc(toolUseText(t))}</span></div>${isoDotsHtml(t)}${t.libraryType==='cupboard'?`<div class="tool-local-actions"><button data-tool-qty="${t.id}" data-delta="1">+1</button><button data-tool-qty="${t.id}" data-delta="-1">−1</button><button data-tool-delete="${t.id}">Удалить</button></div>`:''}</div></article>`).join('')||'<div class="empty-state glass"><b>Ничего не найдено</b><span>Измени фильтр или добавь инструмент в шкаф.</span></div>';
+  const q=($('#toolSearch')?.value||'').trim().toLowerCase(),iso=$('#toolIsoFilter')?.value||'all';
+  const filter=t=>(iso==='all'||t.iso.includes(iso))&&(!q||[t.holder,t.insert,t.grade,t.breaker,t.location,t.manufacturer].join(' ').toLowerCase().includes(q));
+  const mine=cupboardTools().filter(filter),catalog=D.tools.map(t=>({...t,libraryType:'catalog',quantity:t.quantity||null,location:t.location||'',photos:t.photos||{}})).filter(filter);
+  const mineHost=$('#toolLibraryMine'),catalogHost=$('#toolLibraryCatalog');
+  if(mineHost)mineHost.innerHTML=mine.length?mine.map(toolLibraryCardHtml).join(''):'<div class="empty-state glass tool-empty"><b>Мой шкаф пока пуст</b><span>Отсканируй коробку или добавь инструмент вручную. Каталог ниже останется только запасным источником.</span></div>';
+  if(catalogHost)catalogHost.innerHTML=catalog.length?catalog.map(toolLibraryCardHtml).join(''):'<div class="empty-state glass tool-empty"><b>В каталоге ничего не найдено</b><span>Измени поиск или ISO-фильтр.</span></div>';
+  const mineCount=$('#toolMineCount'),catalogCount=$('#toolCatalogCount');if(mineCount)mineCount.textContent=`${mine.length} позиций`;if(catalogCount)catalogCount.textContent=`${catalog.length} позиций`;
   $$('[data-tool-qty]').forEach(b=>b.addEventListener('click',()=>{const list=cupboardTools(),t=list.find(x=>x.id===b.dataset.toolQty);if(!t)return;t.quantity=Math.max(0,(t.quantity||0)+(+b.dataset.delta));saveCupboard(list);toast(`${t.insert}: ${t.quantity} шт.`)}));
   $$('[data-tool-delete]').forEach(b=>b.addEventListener('click',()=>{const t=cupboardTools().find(x=>x.id===b.dataset.toolDelete);if(!t)return;if(!confirm(`Удалить ${t.insert} из шкафа?`))return;state.selectedToolIds=(state.selectedToolIds||[]).filter(x=>x!==t.id);saveCupboard(cupboardTools().filter(x=>x.id!==t.id));toast('Инструмент удалён')}));
 }
@@ -393,6 +408,6 @@ function syncStrategy(){$$('#strategySwitch [data-strategy]').forEach(b=>b.class
 function initOfflineStatus(){function upd(){const label=$('#offlineLabel');label.textContent=navigator.onLine?'OFFLINE CORE · ONLINE':'OFFLINE CORE · NO NETWORK';label.style.color=navigator.onLine?'':'#69dfa8'}window.addEventListener('online',upd);window.addEventListener('offline',upd);upd()}
 function registerSW(){if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}))}
 
-function init(){syncMachineUI();renderMaterials();syncStockUI();renderOperationCatalog();renderRoute();syncStrategy();renderPreflight();renderTools();renderProjects();renderReference();initOfflineStatus();syncHeroLive(firstResultPass(),false);goStep(state.step||1);registerSW();}
+function init(){syncMachineUI();renderMaterials();syncStockUI();renderOperationCatalog();renderRoute();syncStrategy();renderPreflight();renderTools();renderProjects();renderReference();initOfflineStatus();syncHeroLive(firstResultPass(),false);goStep(state.step||1,false);registerSW();}
 init();
 })();

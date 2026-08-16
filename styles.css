@@ -116,3 +116,60 @@ html[data-accent="P"]{--iso-rgb:73,151,255;--iso-color:#4997ff}html[data-accent=
 
 @media(max-width:767px){.scanner-modal{padding:0;align-items:end}.scanner-sheet{max-height:94dvh;border-radius:30px 30px 0 0;padding:15px 13px calc(18px + env(safe-area-inset-bottom))}.scanner-source-grid{grid-template-columns:1fr 1fr}.scanner-head h2{font-size:25px}.scanner-head p{font-size:9px}.cupboard-toolbar{display:grid;grid-template-columns:1fr 92px}.tool-card-ui{grid-template-columns:112px 1fr!important}.real-tool-art{height:96px!important}.route-title-line{display:block}.assigned-mini{display:block;text-align:left;margin-top:7px}.active-req-strip{margin:0 0 9px}.process-tool-chip{flex-basis:82vw}.scan-save-actions{position:sticky;bottom:0;background:rgba(7,15,24,.82);backdrop-filter:blur(18px);padding:8px 0 2px;z-index:4}}
 @media(max-width:400px){.scanner-source-grid{grid-template-columns:1fr}.tool-card-ui{grid-template-columns:96px 1fr!important}.cupboard-toolbar{grid-template-columns:1fr}.scan-shot{flex-basis:112px;height:108px}}
+
+
+/* FULL 1.1.1 — iPhone/mobile layout stabilization */
+.primary:disabled,.primary.is-disabled{opacity:.38;filter:saturate(.45);cursor:not-allowed;box-shadow:none!important;transform:none!important}
+.tool-section-head{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin:18px 4px 10px}.tool-section-head small{display:block;color:var(--blue);font-size:8px;letter-spacing:.14em}.tool-section-head h2{margin:3px 0 0;font-size:22px;letter-spacing:-.025em}.catalog-section-head{margin-top:24px}.tool-empty{grid-column:1/-1}
+
+/* ISO remains the process/material identity; selection gets its own Apple blue-violet focus ring. */
+.op-add.selected{border-color:rgba(103,180,255,.72)!important;background:linear-gradient(145deg,rgba(var(--iso-rgb),.10),rgba(78,105,255,.13))!important;box-shadow:inset 0 0 0 1px rgba(124,194,255,.22),0 0 0 2px rgba(105,94,255,.10),0 14px 34px rgba(44,91,190,.16)!important}
+.op-add.selected:before{content:"";position:absolute;left:8px;right:8px;bottom:7px;height:2px;border-radius:999px;background:linear-gradient(90deg,transparent,#62b9ff 24%,#7c65ff 76%,transparent);opacity:.85;box-shadow:0 0 12px rgba(96,153,255,.32)}
+.op-add .op-count{background:linear-gradient(145deg,#63c0ff,#5473ff 58%,#8a63ff)!important;box-shadow:0 7px 20px rgba(73,118,255,.30),inset 0 1px 0 rgba(255,255,255,.45)!important}
+.op-add-wrap.iso-tint:after{opacity:.78}
+
+@media(max-width:767px){
+  :root{--mobile-safe-top:env(safe-area-inset-top,0px)}
+  html{scroll-padding-top:calc(78px + env(safe-area-inset-top,0px));scroll-padding-bottom:calc(88px + env(safe-area-inset-bottom,0px))}
+  body{padding-bottom:0!important;min-height:100dvh}
+  .main-shell{padding:0 10px calc(18px + 84px + env(safe-area-inset-bottom,0px));min-height:100dvh}
+  .topbar{position:sticky;top:max(8px,env(safe-area-inset-top,0px));margin-top:max(8px,env(safe-area-inset-top,0px));height:58px;min-height:58px;z-index:120;background:linear-gradient(145deg,rgba(22,38,54,.90),rgba(10,23,35,.86));box-shadow:0 14px 46px rgba(0,0,0,.34),inset 0 1px 0 rgba(255,255,255,.11)}
+  .view.active{scroll-margin-top:calc(78px + env(safe-area-inset-top,0px))}
+  .page-hero{padding:22px 4px 14px}.page-hero h1{font-size:36px;line-height:1.02;margin-top:6px}.page-hero p{font-size:11px;line-height:1.48}
+
+  /* On workflow steps 2–5, the giant hero collapses into the compact live machine strip. */
+  .compact-work #view-work .hero{padding:12px 4px 10px;min-height:auto;display:block}
+  .compact-work #view-work .hero-copy{display:none}
+  .compact-work #view-work .hero-live{display:grid;grid-template-columns:82px minmax(0,1fr);max-width:none;width:100%;gap:8px}
+  .compact-work #view-work .hero-gauge{width:78px;height:78px}.compact-work #view-work .gauge-ring{width:64px;height:64px}.compact-work #view-work .gauge-ring b{font-size:13px}
+  .compact-work #view-work .hero-sin-grid div{padding:5px}.compact-work #view-work .hero-sin-grid b{font-size:10px}
+
+  /* Five stages always fit on an iPhone width; no hidden fifth step. */
+  .stepper{display:grid!important;grid-template-columns:repeat(5,minmax(0,1fr));overflow:visible!important;gap:4px!important;padding:0!important}
+  .stepper button{min-width:0!important;width:100%;padding:7px 2px!important;gap:3px!important;flex-direction:column;border-radius:13px}
+  .stepper button i{width:21px;height:21px;font-size:9px}.stepper button span{font-size:7px!important;max-width:100%!important;white-space:nowrap!important;text-overflow:clip!important;overflow:visible!important}
+  .wizard-wrap{scroll-margin-top:calc(76px + env(safe-area-inset-top,0px));margin-bottom:14px}
+
+  /* The next-step bar is part of document flow — never floats over operation cards. */
+  .step-actions{position:relative!important;bottom:auto!important;z-index:2!important;margin:14px 0 0!important;padding:8px!important;background:linear-gradient(145deg,rgba(15,29,43,.74),rgba(8,17,27,.68))!important;backdrop-filter:blur(18px) saturate(135%);-webkit-backdrop-filter:blur(18px) saturate(135%);border:1px solid rgba(255,255,255,.075)!important}
+  .wizard-step[data-step-panel="3"]{padding-bottom:26px!important}
+  .operation-card-shell{margin-bottom:10px}.process-tools-card{margin:0 0 10px}
+
+  /* Fixed navigation uses one safe-area reserve only — no triple blank footer. */
+  .bottom-nav{bottom:max(7px,env(safe-area-inset-bottom,0px));height:70px}
+  .app-footer{padding:18px 6px 4px!important;margin-bottom:0}
+
+  .tool-section-head{margin:16px 3px 9px}.tool-section-head h2{font-size:20px}.catalog-section-head{margin-top:20px}
+  .tool-library{grid-template-columns:1fr!important}.tool-card-ui{grid-template-columns:112px minmax(0,1fr)!important}
+  .add-tool-card{margin-bottom:0}
+}
+@media(max-width:400px){
+  .main-shell{padding-left:8px;padding-right:8px}
+  .page-hero h1{font-size:34px}
+  .stepper button{padding-left:1px!important;padding-right:1px!important}.stepper button span{font-size:6.5px!important}
+  .compact-work #view-work .hero-live{grid-template-columns:76px minmax(0,1fr)}
+  .tool-card-ui{grid-template-columns:96px minmax(0,1fr)!important}
+}
+@media(max-width:767px){
+  body:before{content:"";position:fixed;z-index:119;left:0;right:0;top:0;height:max(8px,env(safe-area-inset-top,0px));background:#050a10;pointer-events:none}
+}
