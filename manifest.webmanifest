@@ -1,7 +1,7 @@
 {
   "name": "CNC Copilot FULL",
   "short_name": "CNC Copilot",
-  "description": "Offline CNC technology copilot for turning workflows",
+  "description": "Offline-first CNC turning copilot with smart tool cupboard, scan workflow and drawing requirements",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",

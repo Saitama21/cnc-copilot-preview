@@ -37,16 +37,24 @@ window.CNC_DATA = (() => {
   ];
 
   const threads = [
-    ['M3',.5],['M4',.7],['M5',.8],['M6',1],['M8',1.25],['M10',1.5],['M12',1.75],['M14',2],['M16',2],['M18',2.5],['M20',2.5],['M22',2.5],['M24',3],['M27',3],['M30',3.5],['M33',3.5],['M36',4],['M39',4],['M42',4.5],['M45',4.5],['M48',5],['M52',5],['M56',5.5],['M60',5.5],['M64',6]
+    ['M1',.25],['M1.2',.25],['M1.4',.3],['M1.6',.35],['M1.8',.35],['M2',.4],['M2.5',.45],
+    ['M3',.5],['M3.5',.6],['M4',.7],['M5',.8],['M6',1],['M7',1],['M8',1.25],['M10',1.5],['M12',1.75],
+    ['M14',2],['M16',2],['M18',2.5],['M20',2.5],['M22',2.5],['M24',3],['M27',3],['M30',3.5],['M33',3.5],
+    ['M36',4],['M39',4],['M42',4.5],['M45',4.5],['M48',5],['M52',5],['M56',5.5],['M60',5.5],['M64',6],
+    ['M68',6],['M72',6],['M76',6],['M80',6],['M85',6],['M90',6],['M95',6],['M100',6]
   ];
 
   const fitPresets = [
+    {name:'H6/h5 · высокая точность, скольжение',hole:'H',holeGrade:6,shaft:'h',shaftGrade:5},
+    {name:'H6/g5 · высокая точность, малый зазор',hole:'H',holeGrade:6,shaft:'g',shaftGrade:5},
     {name:'H7/h6 · точная скользящая',hole:'H',holeGrade:7,shaft:'h',shaftGrade:6},
     {name:'H7/g6 · лёгкое скольжение',hole:'H',holeGrade:7,shaft:'g',shaftGrade:6},
     {name:'H7/f7 · ходовая',hole:'H',holeGrade:7,shaft:'f',shaftGrade:7},
     {name:'H7/k6 · переходная',hole:'H',holeGrade:7,shaft:'k',shaftGrade:6},
     {name:'H7/p6 · натяг',hole:'H',holeGrade:7,shaft:'p',shaftGrade:6},
-    {name:'H8/h7 · общая посадка',hole:'H',holeGrade:8,shaft:'h',shaftGrade:7}
+    {name:'H8/h7 · общая скользящая',hole:'H',holeGrade:8,shaft:'h',shaftGrade:7},
+    {name:'H8/f7 · свободная ходовая',hole:'H',holeGrade:8,shaft:'f',shaftGrade:7},
+    {name:'H8/p7 · посадка с натягом',hole:'H',holeGrade:8,shaft:'p',shaftGrade:7}
   ];
 
   const feedbackRules = {
@@ -61,7 +69,7 @@ window.CNC_DATA = (() => {
   };
 
   return {
-    version:'1.0.1 FULL',
+    version:'1.1.0 FULL',
     author:{name:'Ерошов Иван',email:'eroshovivan@gmail.com'},
     machineDefault:{id:'ck52pty',name:'Tengyue CK52PT-Y',control:'SINUMERIK 828D / ShopTurn',maxRpm:4000,spindleKw:11,efficiency:.85,spindle:'A2-6',bore:61,turret:'15 позиций · BMT40 / ER25',axes:'X / Z / Y / C',tailstock:true,setupMaxRpm:null,tailstockMExtend:'',tailstockMRetract:''},
     materials, operations, tools, threads, fitPresets, feedbackRules
