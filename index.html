@@ -3,12 +3,27 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
-<meta name="theme-color" content="#071019">
+<meta name="theme-color" content="#071019" id="themeColorMeta">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="CNC Copilot">
 <meta name="format-detection" content="telephone=no">
-<title>CNC Copilot FULL v1.1.1</title>
+<title>CNC Copilot FULL v1.1.2</title>
+<script>
+(() => {
+  try {
+    const mode = localStorage.getItem('cncThemeMode') || 'system';
+    const effective = mode === 'system'
+      ? (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark')
+      : mode;
+    document.documentElement.dataset.themeMode = mode;
+    document.documentElement.dataset.theme = effective;
+  } catch {
+    document.documentElement.dataset.themeMode = 'system';
+    document.documentElement.dataset.theme = 'dark';
+  }
+})();
+</script>
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="icon" href="./icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png">
@@ -46,7 +61,7 @@
 
 <div class="app-frame">
   <aside class="side-nav glass desktop-only">
-    <div class="side-brand"><div class="brand-cube">C</div><div><strong>CNC Copilot</strong><small>FULL v1.1.1</small></div></div>
+    <div class="side-brand"><div class="brand-cube">C</div><div><strong>CNC Copilot</strong><small>FULL v1.1.2</small></div></div>
     <nav>
       <button class="active" data-view="work"><span>⌁</span><b>Напарник</b><small>техпроцесс</small></button>
       <button data-view="tools"><span>◇</span><b>Инструмент</b><small>мой шкаф</small></button>
@@ -59,8 +74,9 @@
 
   <main class="main-shell">
     <header class="topbar glass">
-      <div class="mobile-brand mobile-only"><div class="brand-cube">C</div><div><strong>CNC Copilot</strong><small>FULL v1.1.1</small></div></div>
+      <div class="mobile-brand mobile-only"><div class="brand-cube">C</div><div><strong>CNC Copilot</strong><small>FULL v1.1.2</small></div></div>
       <div class="top-status"><span class="status-dot"></span><b id="offlineLabel">OFFLINE READY</b><small id="topMachine">CK52PT-Y · 828D</small></div>
+      <button class="round-btn theme-toggle" id="themeToggle" type="button" title="Тема: системная" aria-label="Переключить тему">◐</button>
       <button class="round-btn" id="resetDraft" title="Новый проект">↻</button>
     </header>
 
@@ -254,12 +270,12 @@
         <article class="card glass">
           <div class="card-title"><div><small>ВАЖНО</small><h3>Граница ответственности</h3></div><span class="badge amber">operator check</span></div>
           <p>Расчёт — стартовая технологическая рекомендация. Перед запуском всегда проверяй зажим, траекторию, нули, коррекции, максимальные обороты патрона, направление шпинделя и документацию конкретного инструмента.</p>
-          <div class="version-block"><span>Версия</span><b>FULL 1.1.1</b><span>Режим</span><b>Offline PWA</b></div>
+          <div class="version-block"><span>Версия</span><b>FULL 1.1.2</b><span>Режим</span><b>Offline PWA</b></div>
         </article>
       </div>
     </section>
 
-    <footer class="app-footer"><span>CNC Copilot FULL v1.1.1</span><span>Ерошов Иван · Offline-first</span></footer>
+    <footer class="app-footer"><span>CNC Copilot FULL v1.1.2</span><span>Ерошов Иван · Offline-first</span></footer>
   </main>
 </div>
 

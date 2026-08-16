@@ -108,4 +108,4 @@ const server=http.createServer(async(req,res)=>{
     return send(res,405,{error:'Method not allowed'});
   } catch(e) { console.error(e); return send(res,500,{error:'Server error'}); }
 });
-server.listen(PORT,()=>console.log(`CNC Copilot FULL v1.1.1: http://localhost:${PORT} · AI scanner ${API_KEY?'ready':'needs OPENAI_API_KEY'}`));
+server.listen(PORT,()=>console.log(`CNC Copilot FULL v1.1.2: http://localhost:${PORT} · AI scanner ${API_KEY?'ready':'needs OPENAI_API_KEY'}`));

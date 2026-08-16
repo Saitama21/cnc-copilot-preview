@@ -12,7 +12,46 @@ const store = {
   get(k,fallback){ try{ const v=localStorage.getItem(k); return v ? JSON.parse(v) : fallback; }catch{return fallback;} },
   set(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)); return true; }catch(e){ console.warn('CNC Copilot storage write failed',e); return false; } }
 };
-const KEYS={machine:'cncFullMachineV1',tools:'cncFullToolsV2',projects:'cncFullProjectsV1',draft:'cncFullDraftV2'};
+const KEYS={machine:'cncFullMachineV1',tools:'cncFullToolsV2',projects:'cncFullProjectsV1',draft:'cncFullDraftV2',theme:'cncThemeMode'};
+
+const themeMedia=matchMedia('(prefers-color-scheme: light)');
+const themeModes=['system','light','dark'];
+const themeLabels={system:'Системная',light:'Светлая',dark:'Тёмная'};
+const themeIcons={system:'◐',light:'☀',dark:'☾'};
+function applyThemeMode(mode,notify=false){
+  if(!themeModes.includes(mode))mode='system';
+  const effective=mode==='system'?(themeMedia.matches?'light':'dark'):mode;
+  document.documentElement.dataset.themeMode=mode;
+  document.documentElement.dataset.theme=effective;
+  try{localStorage.setItem(KEYS.theme,mode)}catch{}
+  const button=$('#themeToggle');
+  if(button){button.textContent=themeIcons[mode];button.title=`Тема: ${themeLabels[mode]}`;button.setAttribute('aria-label',`Тема: ${themeLabels[mode]}. Нажать для переключения`)}
+  const themeMeta=$('#themeColorMeta');if(themeMeta)themeMeta.content=effective==='light'?'#edf4fa':'#071019';
+  const statusMeta=document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]');if(statusMeta)statusMeta.content=effective==='light'?'default':'black-translucent';
+  if(notify)toast(`Тема: ${themeLabels[mode]}`);
+}
+function initTheme(){
+  let mode='system';try{mode=localStorage.getItem(KEYS.theme)||'system'}catch{}
+  applyThemeMode(mode);
+  $('#themeToggle')?.addEventListener('click',()=>{const current=document.documentElement.dataset.themeMode||'system';applyThemeMode(themeModes[(themeModes.indexOf(current)+1)%themeModes.length],true)});
+  const syncSystem=()=>{if((document.documentElement.dataset.themeMode||'system')==='system')applyThemeMode('system')};
+  themeMedia.addEventListener?.('change',syncSystem);
+}
+
+function initAdaptiveDock(){
+  const dock=$('.bottom-nav');if(!dock)return;
+  let lastY=Math.max(0,window.scrollY),ticking=false;
+  const show=()=>dock.classList.remove('dock-collapsed');
+  const update=()=>{
+    const y=Math.max(0,window.scrollY),delta=y-lastY;
+    if(y<48||delta<-4)show();
+    else if(y>120&&delta>4)dock.classList.add('dock-collapsed');
+    lastY=y;ticking=false;
+  };
+  window.addEventListener('scroll',()=>{if(!ticking){ticking=true;requestAnimationFrame(update)}},{passive:true});
+  dock.addEventListener('pointerdown',show,{passive:true});
+  window.visualViewport?.addEventListener('resize',show,{passive:true});
+}
 // One-time, non-destructive migration from FULL v1.0.1 storage keys.
 try{
   if(localStorage.getItem(KEYS.tools)==null){const old=store.get('cncFullToolsV1',null);if(Array.isArray(old)&&old.length)store.set(KEYS.tools,old)}
@@ -320,7 +359,7 @@ $('#resetDraft').addEventListener('click',newProject);$('#newProjectBtn').addEve
 
 function printProject(){if(!state.results.length){toast('Нет рассчитанного проекта');return}window.print()}
 ['printProjectBtn','printProjectTop'].forEach(id=>$('#'+id).addEventListener('click',printProject));
-function exportPng(){if(!state.results.length){toast('Нет рассчитанного проекта');return}const c=$('#exportCanvas'),ctx=c.getContext('2d'),w=c.width,h=c.height;const grad=ctx.createLinearGradient(0,0,w,h);grad.addColorStop(0,'#071624');grad.addColorStop(1,'#04080d');ctx.fillStyle=grad;ctx.fillRect(0,0,w,h);ctx.fillStyle='#6bbaff';ctx.font='700 26px system-ui';ctx.fillText('CNC COPILOT · FULL 1.1.1',70,80);ctx.fillStyle='#f7fbff';ctx.font='800 56px system-ui';ctx.fillText($('#projectName').value||'Техпроцесс',70,155);const s=stockMm(),m=material();ctx.fillStyle='#9db0c0';ctx.font='26px system-ui';ctx.fillText(`${state.machine.name} · ${m.name} · Ø${round(s.diameter,1)} × ${round(s.length,1)} мм`,70,210);let y=285;state.results.slice(0,9).forEach((g,i)=>{ctx.fillStyle='rgba(255,255,255,.07)';roundRect(ctx,60,y-38,1080,125,25);ctx.fill();ctx.fillStyle='#f7fbff';ctx.font='700 28px system-ui';ctx.fillText(`${String(i+1).padStart(2,'0')}  ${operation(g.opId).name}`,85,y);let x=85;g.passes.forEach((p,j)=>{ctx.fillStyle=j?'#86e2b2':'#8fcaff';ctx.font='600 20px system-ui';ctx.fillText(`${passLabel(p.pass)}: S ${p.rpm}  f ${p.f}  Vc ${p.vc}  ap ${p.ap}${p.verified?'  ✓':''}`,x,y+42+j*31)});y+=145});ctx.fillStyle='#71879a';ctx.font='18px system-ui';ctx.fillText('Стартовая технологическая рекомендация. Проверяй зажим, траекторию, нули и лимиты станка.',70,h-70);c.toBlob(blob=>{const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`CNC-${safeName($('#projectName').value)}.png`;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),500)},'image/png')}
+function exportPng(){if(!state.results.length){toast('Нет рассчитанного проекта');return}const c=$('#exportCanvas'),ctx=c.getContext('2d'),w=c.width,h=c.height;const grad=ctx.createLinearGradient(0,0,w,h);grad.addColorStop(0,'#071624');grad.addColorStop(1,'#04080d');ctx.fillStyle=grad;ctx.fillRect(0,0,w,h);ctx.fillStyle='#6bbaff';ctx.font='700 26px system-ui';ctx.fillText('CNC COPILOT · FULL 1.1.2',70,80);ctx.fillStyle='#f7fbff';ctx.font='800 56px system-ui';ctx.fillText($('#projectName').value||'Техпроцесс',70,155);const s=stockMm(),m=material();ctx.fillStyle='#9db0c0';ctx.font='26px system-ui';ctx.fillText(`${state.machine.name} · ${m.name} · Ø${round(s.diameter,1)} × ${round(s.length,1)} мм`,70,210);let y=285;state.results.slice(0,9).forEach((g,i)=>{ctx.fillStyle='rgba(255,255,255,.07)';roundRect(ctx,60,y-38,1080,125,25);ctx.fill();ctx.fillStyle='#f7fbff';ctx.font='700 28px system-ui';ctx.fillText(`${String(i+1).padStart(2,'0')}  ${operation(g.opId).name}`,85,y);let x=85;g.passes.forEach((p,j)=>{ctx.fillStyle=j?'#86e2b2':'#8fcaff';ctx.font='600 20px system-ui';ctx.fillText(`${passLabel(p.pass)}: S ${p.rpm}  f ${p.f}  Vc ${p.vc}  ap ${p.ap}${p.verified?'  ✓':''}`,x,y+42+j*31)});y+=145});ctx.fillStyle='#71879a';ctx.font='18px system-ui';ctx.fillText('Стартовая технологическая рекомендация. Проверяй зажим, траекторию, нули и лимиты станка.',70,h-70);c.toBlob(blob=>{const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`CNC-${safeName($('#projectName').value)}.png`;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),500)},'image/png')}
 function roundRect(ctx,x,y,w,h,r){ctx.beginPath();ctx.roundRect?ctx.roundRect(x,y,w,h,r):(ctx.rect(x,y,w,h));}
 function safeName(s){return String(s||'project').replace(/[^a-zA-Z0-9а-яА-ЯёЁ_-]+/g,'_').slice(0,60)}
 $('#exportPngBtn').addEventListener('click',exportPng);
@@ -408,6 +447,6 @@ function syncStrategy(){$$('#strategySwitch [data-strategy]').forEach(b=>b.class
 function initOfflineStatus(){function upd(){const label=$('#offlineLabel');label.textContent=navigator.onLine?'OFFLINE CORE · ONLINE':'OFFLINE CORE · NO NETWORK';label.style.color=navigator.onLine?'':'#69dfa8'}window.addEventListener('online',upd);window.addEventListener('offline',upd);upd()}
 function registerSW(){if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}))}
 
-function init(){syncMachineUI();renderMaterials();syncStockUI();renderOperationCatalog();renderRoute();syncStrategy();renderPreflight();renderTools();renderProjects();renderReference();initOfflineStatus();syncHeroLive(firstResultPass(),false);goStep(state.step||1,false);registerSW();}
+function init(){initTheme();initAdaptiveDock();syncMachineUI();renderMaterials();syncStockUI();renderOperationCatalog();renderRoute();syncStrategy();renderPreflight();renderTools();renderProjects();renderReference();initOfflineStatus();syncHeroLive(firstResultPass(),false);goStep(state.step||1,false);registerSW();}
 init();
 })();
